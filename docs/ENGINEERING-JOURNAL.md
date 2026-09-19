@@ -287,3 +287,31 @@ Game feel is an emergent property of synchronized sensory feedback: physical sou
 - **Current Observation:** Hard mode currently scales difficulty purely by increasing the mine count to 24 (37.5% density). Observed playtesting indicates that players can sometimes still navigate directly to the enemy King along the shortest topological jump path if candidate mine placement happens to leave direct corridors unblocked.
 - **Future Direction (Tactical Path-Blocking):** In future iterations, we could introduce tactical generation heuristics that deliberately place mines along the shortest path to force players into circuitous detours across the battlefield.
 - **Core Design Invariant (Randomizing the Choice):** The key to this mechanic is **randomizing that choice** across board iterations. If the generator were to systematically place a mine on all shortest paths, the layout would become predictable—players would quickly learn to invert the rule and assume direct paths are always traps. Selectively and probabilistically injecting tactical path-blockers into a randomized subset of iterations preserves genuine uncertainty, prevents player exploitation, and adds rich emergent complexity.
+
+---
+
+## Entry 11: Daily Challenge, Local-First Career Stats, and Hybrid Firebase Cloud Architecture
+
+### Problem
+Single-session gameplay lacked long-term player retention loops and viral social growth. Players had no way to track career progress (win streaks, move distributions) or compare scores on equal footing with friends and global commanders.
+
+### Decision
+1. **Daily Challenge Mode (`src/core/daily.ts`):**
+   - Canonical UTC-dated battlefield seed derived via deterministic FNV-1a hashing of `YYYY-MM-DD`.
+   - Day numbering tracked against an epoch date.
+   - Dedicated "Daily" header indicator and deep-linking support (`?daily=true`).
+2. **Local-First Career Record (`src/core/stats.ts`):**
+   - Tracks games played, win rate %, current and max win streaks, fewest moves per difficulty, and move distribution histogram.
+   - Persisted seamlessly to `localStorage` with zero latency, zero mandatory logins, and full offline resilience.
+3. **Share Cards & Deep Linking (`src/core/share.ts`):**
+   - Text-formatted clipboard share cards for daily challenge completions and "Challenge a Friend" URL deep links (`?b=42817&d=medium`).
+4. **Hybrid Firebase Cloud Layer (`src/lib/firebase.ts`, `src/services/`):**
+   - Graceful fallback: If Firebase credentials are not yet configured in `.env.local`, the game operates 100% locally with zero errors.
+   - Frictionless Anonymous Auth: New players silently receive an anonymous guest session.
+   - 1-Click Google Upgrade: When linking with Google, Firebase preserves the anonymous player UID and historical records.
+   - Cloud Firestore Daily Leaderboard: Ranks daily runs by fewest moves and fastest completion time.
+
+### Reasoning
+- **Zero-Friction Onboarding:** Forcing authentication prior to playing drops engagement dramatically. A local-first, guest-first architecture guarantees immediate instant gratification while offering seamless cloud upgrades.
+- **Shared Daily Experience:** Wordle-style deterministic daily seeds foster community discussion and friendly competition.
+

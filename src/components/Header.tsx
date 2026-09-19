@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Crown, Hash, Shield } from 'lucide-react';
+import { Calendar, CheckCircle2, Crown, Hash, Shield, Trophy, User as UserIcon } from 'lucide-react';
 import { DIFFICULTY_PRESETS } from '../core/constants';
 import { DifficultyPreset } from '../core/types';
+import { UserProfile } from '../services/authService';
 
 interface HeaderProps {
   difficulty: DifficultyPreset;
@@ -11,6 +12,12 @@ interface HeaderProps {
   onOpenHowToPlay: () => void;
   onOpenSeedModal: () => void;
   seed: number;
+  isDailyActive?: boolean;
+  onToggleDaily?: () => void;
+  dailyDayNumber?: number;
+  isDailyCompleted?: boolean;
+  onOpenStatsModal?: () => void;
+  userProfile?: UserProfile | null;
 }
 
 export function Header({
@@ -19,6 +26,12 @@ export function Header({
   onOpenHowToPlay,
   onOpenSeedModal,
   seed,
+  isDailyActive = false,
+  onToggleDaily,
+  dailyDayNumber,
+  isDailyCompleted = false,
+  onOpenStatsModal,
+  userProfile,
 }: HeaderProps) {
   return (
     <header className="game-header">
@@ -55,8 +68,33 @@ export function Header({
           })}
         </div>
 
-        {/* Battlefield Identity and How to Play */}
+        {/* Battlefield Identity, Daily Challenge, Stats and How to Play */}
         <div className="header-meta">
+          {onToggleDaily && (
+            <button
+              type="button"
+              className={`daily-toggle-btn ${isDailyActive ? 'active' : ''}`}
+              onClick={onToggleDaily}
+              title="Play today's official Daily Challenge"
+            >
+              <Calendar size={14} />
+              <span>Daily #{dailyDayNumber || 1}</span>
+              {isDailyCompleted && <CheckCircle2 size={13} className="text-emerald" />}
+            </button>
+          )}
+
+          {onOpenStatsModal && (
+            <button
+              type="button"
+              className="stats-btn"
+              onClick={onOpenStatsModal}
+              title="View career stats, streaks, and Daily Leaderboard"
+            >
+              <Trophy size={14} />
+              <span>Stats</span>
+            </button>
+          )}
+
           <button
             type="button"
             className="seed-btn"
