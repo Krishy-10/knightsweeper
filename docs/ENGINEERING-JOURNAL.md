@@ -88,7 +88,7 @@ Procedural generation requires deterministic state machines. Decoupling random n
 ## Entry 04: Pure Rejection Sampling with Easing vs. Constructive Generation
 
 ### Problem
-We need to generate a board with 10 mines where:
+We need to generate a board with a target number of mines (parameterized by difficulty preset: 8 on Easy, 16 on Medium, 24 on Hard; originally 10 in early prototypes) where:
 1. Start is on ranks 1..2 (files b..g, never a corner).
 2. Exit is on ranks 7..8 (at least 3 knight jumps away).
 3. The board is guaranteed solvable purely by logic without guessing.
@@ -193,17 +193,17 @@ Decoupling state transitions from side effects (audio, storage, DOM) is the fund
 
 ---
 
-## Entry 08: Zero Cascade & Clue-Neighborhood Inspection
+## Entry 08: Disabling Zero Cascade (No-Cascade Rule) & Clue-Neighborhood Inspection
 
 ### Problem
-In traditional Minesweeper, clicking a 0 reveals all adjacent squares automatically (cascade). In Knightsweeper, should a 0 auto-open all 8 knight-jump squares?
+In traditional Minesweeper, clicking a 0 reveals all adjacent squares automatically (cascade). In Knightsweeper, should a 0 auto-open all 8 knight-jump squares, or should cascade be turned off?
 
 ### Existing Prototype Behavior & Requirements
 Zero cascade is explicitly disabled. Landing on a 0 proves that all squares a knight could jump to are safe, but does not open them. The player jumps to them manually to read their individual soundings.
 Additionally, hovering over an opened square (or clicking an opened square you cannot immediately jump to) outlines its 8 counted squares (clue peek).
 
 ### Decision
-Preserve the zero-cascade rule. Implement reactive neighborhood peeking by calculating the active peek square in `useKnightsweeper.ts` and passing `isCounted` to `Square.tsx`.
+Preserve the no-cascade rule (keep zero-cascade disabled). Landing on a 0 proves all reachable squares are safe, but nothing opens automatically—the player must jump to squares manually to reveal their clues. Implement reactive neighborhood peeking by calculating the active peek square in `useKnightsweeper.ts` and passing `isCounted` to `Square.tsx`.
 
 ### Reasoning
 - **Spatial Confusion of Knight Moves:** Knight jumps scatter in an alternating checkerboard pattern across 2 ranks and 2 files. An automatic opening of a 0 would scatter 8 numbers across distant squares, creating immediate visual chaos and disorientation.
@@ -282,3 +282,8 @@ While the functional mechanics were solid, playtesting revealed several areas wh
 
 ### What to Learn From This
 Game feel is an emergent property of synchronized sensory feedback: physical sound, coordinated camera/container movement, and staged animation timing turn abstract state transitions into a visceral experience.
+
+### Playtest Observation & Future Direction: Tactical Path-Blocking in Hard Mode
+- **Current Observation:** Hard mode currently scales difficulty purely by increasing the mine count to 24 (37.5% density). Observed playtesting indicates that players can sometimes still navigate directly to the enemy King along the shortest topological jump path if candidate mine placement happens to leave direct corridors unblocked.
+- **Future Direction (Tactical Path-Blocking):** In future iterations, we could introduce tactical generation heuristics that deliberately place mines along the shortest path to force players into circuitous detours across the battlefield.
+- **Core Design Invariant (Randomizing the Choice):** The key to this mechanic is **randomizing that choice** across board iterations. If the generator were to systematically place a mine on all shortest paths, the layout would become predictable—players would quickly learn to invert the rule and assume direct paths are always traps. Selectively and probabilistically injecting tactical path-blockers into a randomized subset of iterations preserves genuine uncertainty, prevents player exploitation, and adds rich emergent complexity.

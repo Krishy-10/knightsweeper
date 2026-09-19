@@ -2,7 +2,7 @@
   "name": "knightsweeper",
   "version": "1.0.0",
   "private": true,
-  "description": "Minesweeper played by a chess knight on an 8x8 nautical chart",
+  "description": "Chess movement meets Minesweeper deduction. Navigate your knight across a mined battlefield to capture the enemy King.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

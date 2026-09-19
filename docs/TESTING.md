@@ -69,6 +69,12 @@ The three difficulty presets were playtested to assess pacing, cognitive load, a
 | **Medium (Default)** | 16 | 25.0% | Moderate (2–4 steps per frontier) | The intended core game. Requires careful flagging, backtracking across safe territory, and reading overlapping frontiers. |
 | **Hard** | 24 | 37.5% | Deep (4+ steps, narrow safe corridors) | Intense tactical minefield. Demands disciplined edge navigation and careful life preservation. |
 
+> [!NOTE]
+> **Hard Mode Playtest Observation & Future Balance Consideration:**
+> Currently, Hard mode scales challenge solely through raw mine density (24 mines / 37.5%). Playtest observation reveals that players can still occasionally reach the enemy King via the shortest path if candidate mine placement leaves direct corridors open.
+> For future generator iterations, we can explore tactical mine placement that deliberately cuts off the shortest path in a subset of iterations to force deeper circuitous detours. The key to this mechanic is **probabilistic randomization**: blocking the shortest path only in some iterations rather than all of them avoids predictability (which players could otherwise exploit by assuming direct paths are always mined) while significantly elevating emergent complexity.
+
+
 ---
 
 ## 4. Automated Testing Suite
@@ -133,7 +139,7 @@ Knightsweeper includes an automated test suite executed via Vitest to verify mat
 - [x] **No Local File Paths:** All documentation links use repository-relative paths (`../src/...` or `src/...`).
 - [x] **Calibrated Claims:** Performance and statistical descriptions are measured, accurate, and defensible.
 - [x] **Thematic Harmony:** Visuals, audio, and terminology consistently reflect the chess battlefield identity.
-- [x] **Rule Invariants Enforced:** Zero cascade, previous-square respawn, and guess-free generation verified.
+- [x] **Rule Invariants Enforced:** No auto-cascade on zeros (cascade disabled), previous-square respawn, and guess-free generation verified.
 - [x] **Cross-Platform Responsive:** Verified across desktop and mobile viewports down to 375px with zero horizontal scroll.
 - [x] **Accessibility & Motion:** Live region status announcements and `prefers-reduced-motion` compliance.
 - [x] **Production Build Clean:** Next.js build passes with zero errors or warnings.

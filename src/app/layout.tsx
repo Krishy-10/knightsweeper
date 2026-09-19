@@ -5,6 +5,13 @@ export const metadata: Metadata = {
   title: 'Knightsweeper: Chess Knight vs Mined Battlefield',
   description:
     'Chess movement meets Minesweeper deduction. Navigate your knight across a mined battlefield to capture the enemy King.',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32' },
+    ],
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
