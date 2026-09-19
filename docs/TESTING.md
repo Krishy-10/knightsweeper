@@ -79,21 +79,23 @@ The three difficulty presets were playtested to assess pacing, cognitive load, a
 
 ## 4. Automated Testing Suite
 
-Knightsweeper includes an automated test suite executed via Vitest to verify mathematical models, graph invariants, and state machine transitions independently of the browser DOM.
+Knightsweeper includes an automated test suite executed via Vitest to verify mathematical models, graph invariants, deterministic generators, daily challenge hashing, and state machine transitions independently of the browser DOM.
 
-### Test Summary: 28 Passed across 7 Test Files
+### Test Summary: 35 Passed across 9 Test Files
 
 ```
- ✓ tests/clues.test.ts (4 tests)
- ✓ tests/coordinates.test.ts (6 tests)
- ✓ tests/graph.test.ts (4 tests)
- ✓ tests/random.test.ts (3 tests)
- ✓ tests/solver.test.ts (4 tests)
+ ✓ tests/clues.test.ts (2 tests)
+ ✓ tests/coordinates.test.ts (5 tests)
+ ✓ tests/daily.test.ts (4 tests)
+ ✓ tests/gameReducer.test.ts (6 tests)
  ✓ tests/generator.test.ts (3 tests)
- ✓ tests/gameReducer.test.ts (4 tests)
+ ✓ tests/graph.test.ts (4 tests)
+ ✓ tests/random.test.ts (4 tests)
+ ✓ tests/solver.test.ts (4 tests)
+ ✓ tests/stats.test.ts (3 tests)
 
- Test Files  7 passed (7)
-      Tests  28 passed (28)
+ Test Files  9 passed (9)
+      Tests  35 passed (35)
 ```
 
 ### Coverage by Component
@@ -132,9 +134,31 @@ Knightsweeper includes an automated test suite executed via Vitest to verify mat
    - Two-knight life decrements and safe respawn on originating square.
    - Decoupled sound event emissions for all gameplay actions.
 
+8. **`tests/daily.test.ts`**
+   - Deterministic 32-bit FNV-1a hashing for UTC calendar dates (`DAILY-YYYYMMDD`).
+   - Identical seed guarantee across different time zones on the same UTC date.
+   - Distinct daily seed progression across consecutive calendar days.
+   - Daily attempt completion states and local record persistence.
+
 ---
 
-## 5. Verification Checklist & Release Sign-Off
+## 5. Cloud Integration & PWA Verification
+
+### A. Firebase Authentication & Firestore Leaderboard Audit
+- **Anonymous Session Initialization:** Verified that first-time visitors automatically receive a valid anonymous Firebase `uid` with zero friction or blocking popups.
+- **Account Linking & State Reactivity:** Verified that linking with Google via `linkWithPopup` preserves the original `uid` and emits immediate updates via `onIdTokenChanged`, instantly reflecting the player's Google avatar and display name in the header and account tab.
+- **Authorized Domain Security:** Tested and confirmed authorization on `localhost` and `knightsweeper.vercel.app`.
+- **Leaderboard Writes:** Verified that daily challenge victories submit score records (`moves`, `timeSeconds`, `completedAt`) to Firestore `/daily_leaderboards/{date}/scores/{uid}`.
+
+### B. Progressive Web App (PWA) Audit
+- **Manifest Validation:** Verified `public/manifest.json` conforms to W3C Web App Manifest standards with valid icons (`icon.svg`, `favicon.ico`), `display: standalone`, and `#18232c` theme color.
+- **Service Worker Lifecycle:** Verified `public/sw.js` caches the app shell on install, purges stale caches on activation, and serves cached responses when offline.
+- **Network Bypass for Cloud APIs:** Verified that service worker fetch listeners do not intercept or cache Firebase Auth or Firestore requests, avoiding stale cloud state.
+- **Installation Prompt:** Confirmed browser recognizes the web app as installable on desktop and mobile platforms.
+
+---
+
+## 6. Verification Checklist & Release Sign-Off
 
 - [x] **No Local File Paths:** All documentation links use repository-relative paths (`../src/...` or `src/...`).
 - [x] **Calibrated Claims:** Performance and statistical descriptions are measured, accurate, and defensible.
@@ -143,6 +167,10 @@ Knightsweeper includes an automated test suite executed via Vitest to verify mat
 - [x] **Cross-Platform Responsive:** Verified across desktop and mobile viewports down to 375px with zero horizontal scroll.
 - [x] **Accessibility & Motion:** Live region status announcements and `prefers-reduced-motion` compliance.
 - [x] **Production Build Clean:** Next.js build passes with zero errors or warnings.
-- [x] **Automated Suite Passing:** 28/28 Vitest tests pass cleanly.
+- [x] **Automated Suite Passing:** 35/35 Vitest tests pass cleanly across 8 suites.
+- [x] **Daily Challenge & Stats:** Deterministic UTC daily seed, career streaks, and move distribution histogram verified.
+- [x] **Cloud Auth & Leaderboards:** Anonymous-first Firebase auth and Firestore daily leaderboard operational.
+- [x] **PWA Installable & Offline-Ready:** Web manifest, service worker shell caching, and offline support verified.
 
-**Conclusion:** Knightsweeper is verified, feature-complete, mechanically sound, and ready for public release.
+**Conclusion:** Knightsweeper is verified, feature-complete, mechanically sound, cloud-connected, and ready for public release.
+

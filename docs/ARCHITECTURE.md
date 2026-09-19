@@ -255,3 +255,88 @@ sequenceDiagram
     Hook->>React: Update GameState & UIState
     React-->>User: Re-render board, King topple reaction on win, sound effects
 ```
+
+---
+
+## 6. Daily Challenge & Career Stats Architecture
+
+Knightsweeper incorporates a Wordle-style **Daily Challenge** mode that challenges all global players with the exact same puzzle each calendar day.
+
+### A. Deterministic UTC Date Seeding (`src/core/daily.ts`)
+To prevent time-zone exploitation while ensuring everyone across the globe solves the identical battlefield on any given date, seeds are generated deterministically using UTC midnight timestamps:
+- Format: `DAILY-YYYYMMDD` (e.g., `DAILY-20260919`).
+- Hashing: 32-bit **FNV-1a (Fowler–Noll–Vo)** hash converts the date string into a deterministic 32-bit unsigned integer seed for the Mulberry32 PRNG.
+- Guarantee: Identical mine placements, starting coordinates, and King coordinates globally for that calendar day.
+
+### B. Daily Persistence & Attempt Limits
+- One official submission per day.
+- Daily results (completed, won, moves, time taken, timestamp) are stored locally in `localStorage` under `knightsweeper_daily_state_v1`.
+- If already attempted today, players can review their completed stats and share their card, but cannot submit duplicate scores.
+
+### C. Career Statistics & Histograms (`src/core/stats.ts`)
+- Tracks: Games Played, Games Won, Win Rate %, Current Streak, Max Streak, and Move Distribution histogram (grouped into bins: $\le 10, 11\text{–}15, 16\text{–}20, 21\text{–}25, 26\text{–}30, 31+$).
+- Local-first architecture: Updated immediately upon victory or defeat in `localStorage` under `knightsweeper_career_stats_v1`.
+
+### D. Wordle-Style Emoji Share Cards (`src/core/share.ts`)
+- Generates rich text share snippets formatted with Unicode emoji tiles:
+  - 🟩 Safe explored jumps
+  - 🟨 Safe detours / backtracks
+  - 🟥 Mine hits / life lost
+  - 👑 King captured
+- Deep-links directly to the shared battlefield seed via URL query parameter (`?seed=...`).
+
+---
+
+## 7. Cloud Identity & Global Leaderboard Architecture
+
+To provide global competition without sacrificing privacy or frictionless onboarding, Knightsweeper employs a zero-cost **Anonymous-First Firebase Architecture**:
+
+```mermaid
+graph TD
+    User["Player Arrives"] --> Anon["Firebase Anonymous Sign-In"]
+    Anon --> LocalStats["Local Career Stats + Daily Record"]
+    
+    Anon -.->|Optional Upgrade| GoogleAuth["Google OAuth Link (linkWithPopup)"]
+    GoogleAuth --> MergedAccount["Same UID Preserved + Google Avatar & Name"]
+    
+    LocalStats --> SubmitCheck{Won Daily Challenge?}
+    SubmitCheck -->|Yes| Firestore["Firestore Cloud Write\n/daily_leaderboards/{date}/scores/{uid}"]
+    SubmitCheck -->|No| LocalOnly["Local Stats Only"]
+    
+    Firestore --> LeaderboardUI["Daily Leaderboard Tab\n(Rank, Player, Moves, Time)"]
+```
+
+### A. Anonymous-First Frictionless Onboarding
+- When a new player loads the game, `src/services/authService.ts` automatically signs them in anonymously via `signInAnonymously(auth)`.
+- No popups, no passwords, no forced registration. The player gets an immediate unique cloud `uid`.
+
+### B. Seamless Account Upgrading via Google OAuth
+- Players can link their anonymous account with Google at any time via `linkWithPopup(auth.currentUser, googleProvider)`.
+- **UID Preservation:** Linking retains the existing `uid`, guaranteeing that streaks, submitted daily scores, and career history are seamlessly merged rather than orphaned.
+- **Reactive Token Listening:** Authentication state changes are monitored via `onIdTokenChanged` rather than `onAuthStateChanged`. This ensures that when an anonymous account links with Google, the provider profile and Google avatar immediately propagate to the UI without requiring a page reload.
+
+### C. Firestore Leaderboards (`src/services/leaderboardService.ts`)
+- Path: `daily_leaderboards/{date}/scores/{uid}`
+- Document schema: `{ uid, displayName, photoURL, moves, timeSeconds, won, completedAt, isAnonymous }`
+- Query: Ordered by `moves ASC`, then `timeSeconds ASC`.
+- Limits: Top 50 entries fetched per daily challenge.
+
+---
+
+## 8. Progressive Web App (PWA) & Offline-First Strategy
+
+Knightsweeper is a 100% client-executable deterministic puzzle game. To make it installable on mobile devices and playable offline in airplanes or subways, it is packaged as a Progressive Web App.
+
+### A. Web App Manifest (`public/manifest.json`)
+- Declares app metadata, standalone display mode, orientation lock (`portrait`), and dark theme color (`#18232c`).
+- Connects SVG vector icons and touch icons with `any maskable` purpose.
+
+### B. Service Worker Architecture (`public/sw.js`)
+- **Pre-caching:** Pre-caches the application shell (`/`, `/manifest.json`, `/icon.svg`, `/favicon.ico`) during service worker installation.
+- **Stale-While-Revalidate:** Local static assets are served from cache for instant sub-millisecond loads while fetching updates in the background.
+- **Offline Navigation Fallback:** Navigating to `/` when completely disconnected from the network automatically serves the cached app shell.
+- **Cloud API Bypass:** Crucially, cross-origin requests to Google APIs (`firestore.googleapis.com`, `identitytoolkit.googleapis.com`, etc.) bypass the service worker cache entirely, ensuring live leaderboards and authentication always communicate with the network when connected.
+
+### C. Client Registration (`src/components/PwaRegister.tsx`)
+- Registered during the `window.load` lifecycle event strictly in production environments, ensuring developer tooling and hot-module reloading in local development are never interfered with.
+

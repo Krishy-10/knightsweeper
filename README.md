@@ -24,6 +24,11 @@ You navigate an 8×8 chessboard embedded with hidden landmines, starting on the 
 
 - **The Clue Has the Same Shape as the Move:** Every clue counts mines on the up to 8 squares your knight could jump to next.
 - **Guaranteed Deductive Solvability:** Procedurally generated using a single-clue constraint propagation solver. Puzzles are guaranteed solvable through pure logic without forced 50/50 guessing.
+- **Wordle-Style Daily Challenge:** A synchronized daily battlefield generated deterministically via UTC midnight FNV-1a hashing. Everyone worldwide plays the exact same battlefield each day.
+- **Global Leaderboards & Cloud Sync:** Zero-cost anonymous-first Firebase authentication with optional one-click Google account upgrading to preserve stats and compete on the global daily leaderboard.
+- **Career Statistics & Streaks:** Tracks games played, wins, win percentage, current streak, max streak, and move count distribution histograms.
+- **Wordle-Style Emoji Share Cards:** Generate spoiler-free emoji grid summaries (🟩 safe jumps, 🟨 detours, 🟥 mine hits, 👑 captured king) with direct deep links.
+- **Installable Progressive Web App (PWA):** Play offline on mobile or desktop via service worker shell caching and web manifest.
 - **Two-Knight Life System:** You have two knights to spend. Landing on a mine triggers a whole-battlefield jolt, scorches the mine permanently, and respawns your replacement knight on the originating square (zero information leakage).
 - **Staged Enemy King Capture:** Reaching the King initiates a 90ms hit-stop impact freeze, physical piece topple, gold/ivory particle celebration, and victory fanfare.
 - **Tactile Physical Sound Design:** Zero external audio assets. Real-time procedural audio synthesized via the Web Audio API (wooden piece clacks, sub-bass detonation drops, brass fanfares, mechanical flag clicks).
@@ -53,9 +58,12 @@ This repository was developed through a complete Product Management (PM) lifecyc
 
 - **Framework:** [Next.js 14](https://nextjs.org/) (App Router, React Server & Client Components)
 - **Language:** [TypeScript](https://www.typescriptlang.org/) (Strict Mode)
+- **Cloud & Auth:** [Firebase 10](https://firebase.google.com/) (Anonymous Auth, Google OAuth, Cloud Firestore)
+- **PWA & Offline:** Web App Manifest, Service Worker (Stale-While-Revalidate app shell)
 - **Styling:** Vanilla CSS & CSS Variables (zero utility bloat, dark/light theme tokens)
 - **Audio Engine:** Web Audio API (real-time procedural wave synthesis)
-- **Testing:** [Vitest](https://vitest.dev/) (28 automated unit tests covering domain models, solver, and state machine)
+- **Testing:** [Vitest](https://vitest.dev/) (35 automated unit tests covering domain models, solver, state machine, and daily seeds)
+
 
 ---
 

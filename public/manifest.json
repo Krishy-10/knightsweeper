@@ -1,0 +1,25 @@
+{
+  "name": "Knightsweeper: Chess Knight vs Mined Battlefield",
+  "short_name": "Knightsweeper",
+  "description": "Chess movement meets Minesweeper deduction. Navigate your knight across a mined battlefield to capture the enemy King.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#18232c",
+  "theme_color": "#18232c",
+  "categories": ["games", "puzzle"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon",
+      "purpose": "any"
+    }
+  ]
+}

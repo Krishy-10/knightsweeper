@@ -1,10 +1,17 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import PwaRegister from '@/components/PwaRegister';
 
 export const metadata: Metadata = {
   title: 'Knightsweeper: Chess Knight vs Mined Battlefield',
   description:
     'Chess movement meets Minesweeper deduction. Navigate your knight across a mined battlefield to capture the enemy King.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Knightsweeper',
+  },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -12,6 +19,12 @@ export const metadata: Metadata = {
     ],
     apple: '/icon.svg',
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#18232c',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -29,7 +42,11 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }
+
