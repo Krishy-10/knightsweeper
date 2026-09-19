@@ -36,6 +36,7 @@ interface StatsModalProps {
   userProfile: UserProfile | null;
   onClose: () => void;
   onSelectDaily?: () => void;
+  onUserProfileUpdated?: (profile: UserProfile | null) => void;
 }
 
 type TabKey = 'career' | 'leaderboard' | 'account';
@@ -47,8 +48,10 @@ export function StatsModal({
   userProfile,
   onClose,
   onSelectDaily,
+  onUserProfileUpdated,
 }: StatsModalProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('career');
+  const [profile, setProfile] = useState<UserProfile | null>(userProfile);
   const [leaderboardDiff, setLeaderboardDiff] = useState<DifficultyPreset>('medium');
   const [leaderboardScores, setLeaderboardScores] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState<boolean>(false);
@@ -56,6 +59,11 @@ export function StatsModal({
   const [authError, setAuthError] = useState<string | null>(null);
 
   const hasFirebase = isFirebaseConfigured();
+
+  // Sync profile when prop changes
+  useEffect(() => {
+    setProfile(userProfile);
+  }, [userProfile]);
 
   // Load leaderboard when on the leaderboard tab
   useEffect(() => {
@@ -92,8 +100,13 @@ export function StatsModal({
     setAuthLoading(true);
     setAuthError(null);
     try {
-      await signInOrLinkWithGoogle();
+      const updated = await signInOrLinkWithGoogle();
+      if (updated) {
+        setProfile(updated);
+        onUserProfileUpdated?.(updated);
+      }
     } catch (err: any) {
+      console.error('[Knightsweeper] Google sign in error:', err);
       setAuthError(err?.message || 'Failed to sign in with Google. Please check your popup blocker.');
     } finally {
       setAuthLoading(false);
@@ -102,8 +115,11 @@ export function StatsModal({
 
   const handleSignOut = async () => {
     setAuthLoading(true);
+    setAuthError(null);
     try {
       await signOutAccount();
+      setProfile(null);
+      onUserProfileUpdated?.(null);
     } catch (err: any) {
       setAuthError(err?.message || 'Failed to sign out.');
     } finally {
@@ -167,7 +183,7 @@ export function StatsModal({
           >
             <UserIcon size={16} />
             <span>Account</span>
-            {userProfile && !userProfile.isAnonymous && <span className="tab-dot" />}
+            {profile && !profile.isAnonymous && <span className="tab-dot" />}
           </button>
         </div>
 
@@ -353,7 +369,7 @@ export function StatsModal({
                     </thead>
                     <tbody>
                       {leaderboardScores.map((entry, idx) => {
-                        const isCurrent = userProfile && userProfile.uid === entry.uid;
+                        const isCurrent = profile && profile.uid === entry.uid;
                         const mins = Math.floor(entry.timeSeconds / 60);
                         const secs = entry.timeSeconds % 60;
                         const formattedTime = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
@@ -387,10 +403,10 @@ export function StatsModal({
             <div className="account-panel">
               <div className="account-card">
                 <div className="account-avatar-wrap">
-                  {userProfile?.photoURL ? (
+                  {profile?.photoURL ? (
                     <img
-                      src={userProfile.photoURL}
-                      alt={userProfile.displayName}
+                      src={profile.photoURL}
+                      alt={profile.displayName}
                       className="account-avatar-img"
                     />
                   ) : (
@@ -402,13 +418,13 @@ export function StatsModal({
 
                 <div className="account-details">
                   <h3 className="account-name">
-                    {userProfile ? userProfile.displayName : 'Guest Knight'}
+                    {profile ? profile.displayName : 'Guest Knight'}
                   </h3>
                   <p className="account-email">
-                    {userProfile?.email || (userProfile?.isAnonymous ? 'Guest Anonymous Profile' : 'Not signed in')}
+                    {profile?.email || (profile?.isAnonymous ? 'Guest Anonymous Profile' : 'Not signed in')}
                   </p>
-                  <span className={`account-badge ${userProfile?.isAnonymous ? 'guest' : 'verified'}`}>
-                    {userProfile?.isAnonymous ? 'Guest Player' : 'Google Account Verified'}
+                  <span className={`account-badge ${profile?.isAnonymous ? 'guest' : 'verified'}`}>
+                    {profile?.isAnonymous ? 'Guest Player' : 'Google Account Verified'}
                   </span>
                 </div>
               </div>
@@ -416,7 +432,7 @@ export function StatsModal({
               {authError && <p className="auth-error-msg">{authError}</p>}
 
               <div className="account-action-box">
-                {userProfile?.isAnonymous ? (
+                {profile?.isAnonymous ? (
                   <>
                     <p className="account-explainer">
                       Link your Google account to secure your battlefield career stats across devices and display

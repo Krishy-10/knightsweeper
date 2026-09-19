@@ -324,6 +324,7 @@ export default function KnightsweeperPage() {
             setIsDailyActive(true);
             startNewGame(dailyInfo.seed, difficulty);
           }}
+          onUserProfileUpdated={(updated) => setUserProfile(updated)}
         />
       </main>
     </>
