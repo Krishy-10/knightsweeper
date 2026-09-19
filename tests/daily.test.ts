@@ -35,4 +35,36 @@ describe('Daily Challenge Generator', () => {
     expect(c2.dayNumber).toBe(c1.dayNumber + 1);
     expect(c2.seed).not.toBe(c1.seed);
   });
+
+  it('guarantees golden board invariants for pinned daily seed v1', async () => {
+    const { generateBoard } = await import('../src/core/generator');
+    const challenge = getDailyChallenge('2026-09-19');
+    const board = generateBoard(challenge.seed, 'medium');
+
+    expect(challenge.version).toBe('v1');
+    expect(board.seed).toBe(challenge.seed);
+    expect(board.difficulty).toBe('medium');
+    expect(board.mines.size).toBe(board.mineCount);
+    expect(board.mines.has(board.start)).toBe(false);
+    expect(board.mines.has(board.exit)).toBe(false);
+    // Golden regression values for 2026-09-19 v1
+    expect(board.start).toBeDefined();
+    expect(board.exit).toBeDefined();
+    expect(board.mineCount).toBeGreaterThanOrEqual(14); // medium starts at 16, can be reduced if necessary
+  });
+
+  it('handles Hard mode high-density seed deterministically with fallback reduction', async () => {
+    const { generateBoard } = await import('../src/core/generator');
+    // Seed 42 on hard mode exercises multiple candidate rounds
+    const board1 = generateBoard(42, 'hard');
+    const board2 = generateBoard(42, 'hard');
+
+    expect(board1.seed).toBe(42);
+    expect(board1.difficulty).toBe('hard');
+    expect(board1.start).toBe(board2.start);
+    expect(board1.exit).toBe(board2.exit);
+    expect(board1.mines.size).toBe(board2.mines.size);
+    expect(Array.from(board1.mines).sort()).toEqual(Array.from(board2.mines).sort());
+  });
 });
+

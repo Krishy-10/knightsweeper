@@ -28,10 +28,13 @@ export function formatUtcDateString(d: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+export const GENERATOR_VERSION = 'v1';
+
 export interface DailyChallengeInfo {
   dateString: string;
   dayNumber: number;
   seed: number;
+  version: string;
 }
 
 /**
@@ -51,11 +54,13 @@ export function getDailyChallenge(targetDate?: Date | string): DailyChallengeInf
   const dateString = formatUtcDateString(d);
   const targetMs = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   const dayNumber = Math.max(1, Math.floor((targetMs - EPOCH_DATE_MS) / 86400000) + 1);
-  const seed = hashStringToSeed(`${dateString}:knightsweeper-daily`);
+  const seed = hashStringToSeed(`DAILY-${GENERATOR_VERSION}:${dateString}:knightsweeper-daily`);
 
   return {
     dateString,
     dayNumber,
     seed,
+    version: GENERATOR_VERSION,
   };
 }
+

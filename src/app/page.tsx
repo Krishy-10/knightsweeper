@@ -30,6 +30,7 @@ import { useSound } from '../hooks/useSound';
 import { useTheme } from '../hooks/useTheme';
 import { subscribeToAuth, UserProfile } from '../services/authService';
 import { submitDailyScore } from '../services/leaderboardService';
+import { pushCareerStatsToCloud, syncCareerStatsWithCloud } from '../services/statsSyncService';
 
 export default function KnightsweeperPage() {
   const {
@@ -48,7 +49,9 @@ export default function KnightsweeperPage() {
     setHover,
     toggleFlag,
     handleSquareClick,
+    movesHistory,
   } = useKnightsweeper();
+
 
   const { soundEnabled, toggleSound } = useSound();
   const { theme, cycleTheme } = useTheme();
@@ -82,10 +85,15 @@ export default function KnightsweeperPage() {
     setStats(loadPlayerStats());
   }, []);
 
-  // Subscribe to Firebase Auth
+  // Subscribe to Firebase Auth and sync career stats
   useEffect(() => {
     const unsubscribe = subscribeToAuth((profile) => {
       setUserProfile(profile);
+      if (profile?.uid && !profile.isAnonymous) {
+        syncCareerStatsWithCloud(profile.uid).then((merged) => {
+          setStats(merged);
+        });
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -145,6 +153,9 @@ export default function KnightsweeperPage() {
           dailyDateString: isDailyActive ? dailyInfo.dateString : null,
         });
         savePlayerStats(next);
+        if (userProfile?.uid && !userProfile.isAnonymous) {
+          pushCareerStatsToCloud(userProfile.uid, next);
+        }
         return next;
       });
 
@@ -160,6 +171,7 @@ export default function KnightsweeperPage() {
           knightsRemaining: gameState.knights,
           difficulty,
           seed: gameState.seed,
+          movesHistory,
         });
       }
     }
@@ -172,7 +184,9 @@ export default function KnightsweeperPage() {
     dailyInfo.dateString,
     difficulty,
     userProfile,
+    movesHistory,
   ]);
+
 
   // Handle toggling Daily Challenge mode
   const handleToggleDaily = () => {

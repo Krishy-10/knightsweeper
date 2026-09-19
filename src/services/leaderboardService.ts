@@ -1,21 +1,18 @@
 /**
  * Knightsweeper Daily Leaderboard Service
- * Submits and retrieves daily challenge leaderboard records from Cloud Firestore.
+ * Submits verified runs to the server API and fetches daily challenge leaderboard records with caching.
  */
 
 import {
   collection,
-  doc,
-  getDoc,
   getDocs,
   limit,
   orderBy,
   query,
-  setDoc,
   where,
 } from 'firebase/firestore';
-import { DifficultyPreset } from '../core/types';
-import { db, isFirebaseConfigured } from '../lib/firebase';
+import { DifficultyPreset, SquareKey } from '../core/types';
+import { auth, db, isFirebaseConfigured } from '../lib/firebase';
 
 export interface LeaderboardEntry {
   uid: string;
@@ -23,7 +20,7 @@ export interface LeaderboardEntry {
   photoURL: string | null;
   moves: number;
   timeSeconds: number;
-  knightsRemaining: number;
+  knightsRemaining?: number;
   difficulty: DifficultyPreset;
   seed: number;
   submittedAt: string;
@@ -39,63 +36,85 @@ export interface SubmitScoreParams {
   knightsRemaining: number;
   difficulty: DifficultyPreset;
   seed: number;
+  movesHistory?: SquareKey[];
 }
 
+// In-memory 60-second read cache to protect free-tier Firestore quotas
+interface CacheItem {
+  timestamp: number;
+  data: LeaderboardEntry[];
+}
+const leaderboardCache: Record<string, CacheItem> = {};
+const CACHE_TTL_MS = 60_000; // 60 seconds
+
 /**
- * Submits a player's score to the Daily Leaderboard for a given date.
- * If a previous score exists for this user, keeps the better score (fewer moves, or faster time).
+ * Submits a player's score to the Daily Leaderboard.
+ * Posts to /api/daily/submit where the move list is replayed and verified server-side.
  */
 export async function submitDailyScore(params: SubmitScoreParams): Promise<boolean> {
-  if (!isFirebaseConfigured() || !db) {
+  if (!isFirebaseConfigured()) {
     return false;
   }
 
   try {
-    const scoreDocRef = doc(db, 'daily_leaderboards', params.dateString, 'scores', params.uid);
-    const existingSnap = await getDoc(scoreDocRef);
-
-    if (existingSnap.exists()) {
-      const prev = existingSnap.data() as LeaderboardEntry;
-      // Only update if current run is superior (fewer moves, or same moves in faster time)
-      const isBetter =
-        params.moves < prev.moves ||
-        (params.moves === prev.moves && params.timeSeconds < prev.timeSeconds);
-
-      if (!isBetter) {
-        return false;
-      }
+    const idToken = await auth?.currentUser?.getIdToken();
+    if (!idToken) {
+      console.warn('[Leaderboard] No active auth token available for submission');
+      return false;
     }
 
-    const payload: LeaderboardEntry = {
-      uid: params.uid,
-      displayName: params.displayName,
-      photoURL: params.photoURL,
-      moves: params.moves,
-      timeSeconds: params.timeSeconds,
-      knightsRemaining: params.knightsRemaining,
-      difficulty: params.difficulty,
-      seed: params.seed,
-      submittedAt: new Date().toISOString(),
-    };
+    const response = await fetch('/api/daily/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        date: params.dateString,
+        movesHistory: params.movesHistory || [],
+        timeSeconds: params.timeSeconds,
+        idToken,
+        displayName: params.displayName,
+        photoURL: params.photoURL,
+      }),
+    });
 
-    await setDoc(scoreDocRef, payload);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.warn('[Leaderboard] Server rejected score submission:', err);
+      return false;
+    }
+
+    // Invalidate local in-memory cache for this date so latest leaderboard reflects immediately
+    const cacheKey = `${params.dateString}:${params.difficulty}`;
+    delete leaderboardCache[cacheKey];
+
     return true;
   } catch (error) {
-    console.warn('[Knightsweeper] Failed to submit score to leaderboard:', error);
+    console.warn('[Leaderboard] Network error submitting score:', error);
     return false;
   }
 }
 
 /**
- * Fetches the top scores for a specific daily challenge date.
+ * Fetches top scores for a specific daily challenge date.
+ * Caches in-memory for 60 seconds and caps query at 50 records to protect quotas.
  */
 export async function fetchDailyLeaderboard(
   dateString: string,
   difficulty: DifficultyPreset = 'medium',
-  maxRecords: number = 20
+  maxRecords: number = 25
 ): Promise<LeaderboardEntry[]> {
   if (!isFirebaseConfigured() || !db) {
     return [];
+  }
+
+  const safeCap = Math.min(Math.max(1, maxRecords), 50);
+  const cacheKey = `${dateString}:${difficulty}`;
+
+  // Check 60-second in-memory cache
+  const cached = leaderboardCache[cacheKey];
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
   }
 
   try {
@@ -105,18 +124,36 @@ export async function fetchDailyLeaderboard(
       where('difficulty', '==', difficulty),
       orderBy('moves', 'asc'),
       orderBy('timeSeconds', 'asc'),
-      limit(maxRecords)
+      limit(safeCap)
     );
 
     const snapshot = await getDocs(q);
     const results: LeaderboardEntry[] = [];
     snapshot.forEach((docSnap: any) => {
-      results.push(docSnap.data() as LeaderboardEntry);
+      const data = docSnap.data();
+
+      results.push({
+        uid: data.uid,
+        displayName: data.displayName,
+        photoURL: data.photoURL,
+        moves: data.moves,
+        timeSeconds: data.timeSeconds,
+        knightsRemaining: data.knightsRemaining ?? 2,
+        difficulty: data.difficulty,
+        seed: data.seed,
+        submittedAt: data.submittedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      });
     });
+
+    // Store in cache
+    leaderboardCache[cacheKey] = {
+      timestamp: Date.now(),
+      data: results,
+    };
 
     return results;
   } catch (error) {
-    console.warn('[Knightsweeper] Failed to fetch leaderboard:', error);
+    console.warn('[Leaderboard] Failed to fetch leaderboard:', error);
     return [];
   }
 }

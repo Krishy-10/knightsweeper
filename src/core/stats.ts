@@ -133,3 +133,39 @@ export function calculateUpdatedStats(
     lastPlayedDate: new Date().toISOString(),
   };
 }
+
+/**
+ * Pure function to merge local and cloud player statistics.
+ */
+export function mergePlayerStats(local: PlayerStats, cloud: PlayerStats): PlayerStats {
+  const mergedMoveDist: MoveDistribution = { ...local.moveDistribution };
+  for (const [bucket, count] of Object.entries(cloud.moveDistribution || {})) {
+    mergedMoveDist[bucket] = Math.max(mergedMoveDist[bucket] || 0, count);
+  }
+
+  const completedDailies = Array.from(
+    new Set([...(local.completedDailies || []), ...(cloud.completedDailies || [])])
+  );
+
+  const getBetter = (a: number | null, b: number | null): number | null => {
+    if (a === null) return b;
+    if (b === null) return a;
+    return Math.min(a, b);
+  };
+
+  return {
+    gamesPlayed: Math.max(local.gamesPlayed, cloud.gamesPlayed || 0),
+    gamesWon: Math.max(local.gamesWon, cloud.gamesWon || 0),
+    currentStreak: Math.max(local.currentStreak, cloud.currentStreak || 0),
+    maxStreak: Math.max(local.maxStreak, cloud.maxStreak || 0),
+    bestMoves: {
+      easy: getBetter(local.bestMoves.easy, cloud.bestMoves?.easy ?? null),
+      medium: getBetter(local.bestMoves.medium, cloud.bestMoves?.medium ?? null),
+      hard: getBetter(local.bestMoves.hard, cloud.bestMoves?.hard ?? null),
+    },
+    moveDistribution: mergedMoveDist,
+    completedDailies,
+    lastPlayedDate: local.lastPlayedDate || cloud.lastPlayedDate || null,
+  };
+}
+

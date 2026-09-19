@@ -4,8 +4,18 @@ const PRECACHE_ASSETS = [
   '/',
   '/manifest.json',
   '/icon.svg',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+  '/icon-maskable.png'
 ];
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -28,6 +38,7 @@ self.addEventListener('activate', (event) => {
     }).then(() => self.clients.claim())
   );
 });
+
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);

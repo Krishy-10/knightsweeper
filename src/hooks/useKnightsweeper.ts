@@ -40,6 +40,7 @@ export function useKnightsweeper() {
   const [kingCaptureStage, setKingCaptureStage] = useState<KingCaptureStage>('idle');
   const [victoryCelebration, setVictoryCelebration] = useState(false);
   const timersRef = useRef<NodeJS.Timeout[]>([]);
+  const movesHistoryRef = useRef<SquareKey[]>([]);
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((t) => clearTimeout(t));
@@ -63,6 +64,7 @@ export function useKnightsweeper() {
       const result = gameReducer(gameState, action);
 
       if (action.type === 'INITIALIZE_GAME') {
+        movesHistoryRef.current = [];
         clearTimers();
         setIsShaking(false);
         setKingCaptureStage('idle');
@@ -74,11 +76,24 @@ export function useKnightsweeper() {
         return;
       }
 
+      // Record valid jump into move history
+      if (action.type === 'JUMP') {
+        const legalMoves = jumpsFrom(gameState.pos);
+        if (
+          legalMoves.includes(action.target) &&
+          !gameState.hit.has(action.target) &&
+          !gameState.flags.has(action.target)
+        ) {
+          movesHistoryRef.current.push(action.target);
+        }
+      }
+
       // Check for King Capture (Victory sequence)
       if (action.type === 'JUMP' && action.target === gameState.exit) {
         clearTimers();
         // Stage 1: Knight lands on King square
         playSound({ type: 'move' });
+
         setKingCaptureStage('hit-stop');
 
         // Stage 2: Hit-stop impact freeze (~90ms)
@@ -328,5 +343,7 @@ export function useKnightsweeper() {
     toggleFlag,
     jump,
     handleSquareClick,
+    movesHistory: movesHistoryRef.current,
   };
 }
+

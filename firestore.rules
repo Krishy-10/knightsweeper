@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Daily Leaderboards: Public read, writes restricted to server Admin SDK
+    match /daily_leaderboards/{date}/scores/{docId} {
+      allow read: if true;
+      allow write: if false; // Denies all client SDK writes to prevent client-side forgery
+    }
+
+    // User Career Stats: Authenticated user can read and write only their own stats
+    match /users/{userId}/career_stats/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Default deny for all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

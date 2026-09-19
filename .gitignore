@@ -25,6 +25,12 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# service account & secrets
+*serviceAccount*.json
+*credentials*.json
+firebase-admin-key*.json
+
+
 # vercel
 .vercel
 

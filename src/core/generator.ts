@@ -26,11 +26,15 @@ export interface GenerateOptions {
  * Generates a provably solvable Knightsweeper battlefield from a numeric seed and difficulty.
  * The same seed and difficulty always produce the exact same layout.
  */
-export function generateBoard(optionsOrSeed: number | GenerateOptions): BoardConfig {
+export function generateBoard(
+  optionsOrSeed: number | GenerateOptions,
+  maybeDifficulty?: DifficultyPreset
+): BoardConfig {
   const options: GenerateOptions =
     typeof optionsOrSeed === 'number'
-      ? { seed: optionsOrSeed }
+      ? { seed: optionsOrSeed, difficulty: maybeDifficulty }
       : optionsOrSeed;
+
 
   const {
     seed,
